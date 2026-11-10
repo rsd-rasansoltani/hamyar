@@ -1,0 +1,212 @@
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>همیار مشاور</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;padding:25px;
+  background:#eee;
+  font-family:Tahoma,Arial;
+  color:#222
+}
+.container{
+  max-width:850px;margin:auto;
+  background:white;padding:20px;
+  border-radius:12px;
+  box-shadow:0 3px 15px #0002
+}
+h2{text-align:center}
+.fields{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px
+}
+input{
+  width:100%;padding:12px;
+  border:1px solid #ccc;
+  border-radius:7px;
+  font-family:Tahoma;
+  font-size:14px
+}
+button{
+  padding:12px 20px;
+  border:0;border-radius:7px;
+  background:#168344;color:white;
+  cursor:pointer;font-size:15px
+}
+.preview{
+  margin-top:20px;
+  width:100%;
+  overflow:hidden
+}
+canvas{
+  width:100%;height:auto;
+  border:1px solid #ddd
+}
+.actions{
+  display:flex;gap:10px;
+  margin-top:15px;flex-wrap:wrap
+}
+@media(max-width:550px){
+  .fields{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h2>سامانه ساخت نمونه کارت همیار مشاور</h2>
+
+<div class="fields">
+<input id="name" placeholder="نام">
+<input id="family" placeholder="نام خانوادگی">
+<input id="code" placeholder="کد ملی" maxlength="10">
+<input id="school" placeholder="نام آموزشگاه">
+<input id="grade" placeholder="پایه تحصیلی">
+
+<input id="photo" type="file" accept="image/*">
+</div>
+
+<div class="preview">
+<canvas id="canvas"></canvas>
+</div>
+
+<div class="actions">
+<button onclick="downloadCard()">دانلود تصویر JPG</button>
+<button onclick="updateCard()">بروزرسانی پیش‌نمایش</button>
+</div>
+</div>
+
+<script>
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+const bg=new Image();
+
+bg.src="a.jpg";
+
+let personPhoto=null;
+
+bg.onload=()=>{
+  canvas.width=bg.naturalWidth;
+  canvas.height=bg.naturalHeight;
+  updateCard();
+};
+
+document.querySelectorAll("input").forEach(input=>{
+  input.addEventListener("input",updateCard);
+});
+
+document.getElementById("photo").addEventListener("change",e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+
+  const reader=new FileReader();
+  reader.onload=()=>{
+    personPhoto=new Image();
+    personPhoto.onload=updateCard;
+    personPhoto.src=reader.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+function getValue(id){
+  return document.getElementById(id).value.trim();
+}
+
+function fitText(text,x,y,maxWidth,size=27){
+  if(!text)return;
+
+  ctx.font=`bold ${size}px Tahoma, Arial`;
+
+  while(ctx.measureText(text).width>maxWidth && size>12){
+    size--;
+    ctx.font=`bold ${size}px Tahoma, Arial`;
+  }
+
+  ctx.fillStyle="#111";
+  ctx.textAlign="right";
+  ctx.textBaseline="middle";
+  ctx.fillText(text,x,y,maxWidth);
+}
+
+function drawPhoto(){
+  if(!personPhoto)return;
+
+  // محل قاب عکس
+  const x=82,y=124,w=135,h=157;
+
+  const ratio=Math.max(
+    w/personPhoto.width,
+    h/personPhoto.height
+  );
+
+  const sw=w/ratio;
+  const sh=h/ratio;
+  const sx=(personPhoto.width-sw)/2;
+  const sy=(personPhoto.height-sh)/2;
+
+  ctx.save();
+
+  ctx.beginPath();
+  ctx.rect(x,y,w,h);
+  ctx.clip();
+
+  ctx.drawImage(
+    personPhoto,
+    sx,sy,sw,sh,
+    x,y,w,h
+  );
+
+  ctx.restore();
+}
+
+function updateCard(){
+  if(!bg.complete || !bg.naturalWidth)return;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(bg,0,0,canvas.width,canvas.height);
+
+  const sx=canvas.width/1125;
+  const sy=canvas.height/843;
+
+  ctx.save();
+  ctx.scale(sx,sy);
+
+  drawPhoto();
+
+  // نام
+  fitText(getValue("name"),1025,365,145,25);
+
+  // نام خانوادگی
+  fitText(getValue("family"),555,365,190,25);
+
+  // کد ملی
+  fitText(getValue("code"),250,365,185,25);
+
+  // پایه تحصیلی
+  fitText(getValue("grade"),930,430,170,24);
+
+  // نام آموزشگاه
+  fitText(getValue("school"),540,430,300,24);
+
+  // نشان دائمی نمونه غیررسمی
+
+ctx.restore();
+}
+
+function downloadCard(){
+  updateCard();
+
+  const link=document.createElement("a");
+  link.download="hamyar-moshaver.jpg";
+  link.href=canvas.toDataURL("image/jpeg",0.95);
+  link.click();
+}
+</script>
+
+</body>
+</html>
